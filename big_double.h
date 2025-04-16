@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string>
 #include <algorithm>
 #include <iostream>
@@ -27,9 +28,9 @@ public:
 			str = negative_check.second.value();
 		}
 
-		// integer_ = GetInteger(str);
-		// fractional_ = GetFractional(str);
-		GetNumber(str, integer_, fractional_);
+		integer_ = GetInteger(str);
+		fractional_ = GetFractional(str);
+		// GetNumber(str, integer_, fractional_);
 		if(str.size() < 100) {
 			limit_ = limit;
 		} else {
@@ -96,6 +97,15 @@ public:
 	BigDouble operator-(BigDouble v2) {
 		BigDouble v1 = *this;
 
+		if(v1.integer_.size() < v2.integer_.size() || 
+		 (v1.integer_.size() == v2.integer_.size() && v1.integer_ < v2.integer_) ||
+       (v1.integer_ == v2.integer_ && (v1.fractional_.size() < v2.fractional_.size() || 
+       (v1.fractional_.size() == v2.fractional_.size() && v1.fractional_ < v2.fractional_)))) {
+        BigDouble result = v2 - v1;
+        result.is_negative_ = true;
+        return result;
+    	}
+
 		std::string integer1 = v1.integer_;
 		std::string integer2 = v2.integer_;
 
@@ -107,14 +117,14 @@ public:
 
 		bool is_negative_result = false;
 
-		if(integer1.size() < integer2.size() || integer1 < integer2 ||
-		fractional1.size() < fractional2.size() || fractional1 < fractional2) {
-			std::swap(integer1, integer2);
-			std::swap(fractional1, fractional2);
-			is_negative_result = true;
-		} else {
-			return BigDouble("0");
-		}
+		// if(integer1.size() < integer2.size() || integer1 < integer2 ||
+		// fractional1.size() < fractional2.size() || fractional1 < fractional2) {
+		// 	std::swap(integer1, integer2);
+		// 	std::swap(fractional1, fractional2);
+		// 	is_negative_result = true;
+		// } else {
+		// 	return BigDouble("0");
+		// }
 
 		int min_length = std::min(fractional1.size(), fractional2.size());
 		std::string* max_element = min_length == fractional1.size() ? &fractional2 : &fractional1;
@@ -155,16 +165,85 @@ public:
 					}
 				}
 			}
-			result_fractional.push_back(num1 - num2);
+			result_fractional.push_back(ToChar(num1 - num2));
 		}
 
-		min_length = std::min(integer1.size(), integer2.size());
+		min_length = std::min(integer1.size(), integer2.size()); 
 		max_element = min_length == integer1.size() ? &integer2 : &integer1;
 
 		std::reverse(integer1.begin(), integer1.end());
 		std::reverse(integer2.begin(), integer2.end());
 
+		for(int i = 0; i < max_element->size(); ++i) {
+			int num1 = integer1.size() == i ? 0 : ToInt(integer1[i]);
+			int num2 = integer2.size() == i ? 0 : ToInt(integer2[i]);
 
+			if(num1 < num2) {
+				int n = i - 1;
+				bool is_find = false;
+
+				while(!is_find) {
+					if(integer1[n] != '0') {
+						num1 += 10;
+						--integer1[n];
+						is_find = true;
+					} else {
+						integer1[i] = '9';
+					}
+				}
+			}
+
+			result_integer.push_back(ToChar(num1 - num2));
+		}
+
+		std::reverse(result_integer.begin(), result_integer.end());
+		std::reverse(result_fractional.begin(), result_fractional.end());
+
+		std::string result = is_negative_result ? "-" : "" + result_integer + "." + result_fractional;
+
+		return BigDouble(result);
+	}
+
+	BigDouble operator*(BigDouble v2) {
+		return *this; // заглушка
+	}
+
+	BigDouble operator/(BigDouble v2) {
+		return *this; // заглушка
+	}
+
+	BigDouble operator-() {
+		BigDouble ret = *this;
+		ret.is_negative_ = !is_negative_;
+		return ret;
+	}
+
+	BigDouble operator+() {
+		return *this;
+	}
+
+	bool operator==(BigDouble v2) {
+		return false;
+	}
+
+	bool operator!=(BigDouble v2) {
+		return false;
+	}
+
+	bool operator<(BigDouble v2) {
+		return false;
+	}
+
+	bool operator<=(BigDouble v2) {
+		return false;
+	}
+
+	bool operator>(BigDouble v2) {
+		return false;
+	}
+
+	bool operator>=(BigDouble v2) {
+		return false;
 	}
 
 	friend std::ostream& operator<<(std::ostream& out, const BigDouble &num);
@@ -206,41 +285,41 @@ private:
 		return {false, std::nullopt};
 	}
 
-	void GetNumber(const std::string &str, std::string &integer, std::string &fractional) {
-		std::regex pattern(R"((\d+)(?:\.(\d+))?)");
-		std::smatch matches;
-		std::regex_match(str, matches, pattern);
-		integer = matches[1].str();
-		fractional = matches[2].str();
+	// void GetNumber(const std::string &str, std::string &integer, std::string &fractional) {
+	// 	std::regex pattern(R"((\d+)(?:\.(\d+))?)");
+	// 	std::smatch matches;
+	// 	std::regex_match(str, matches, pattern);
+	// 	integer = matches[1].str();
+	// 	fractional = matches[2].str();
+	// }
+
+	std::string GetInteger(const std::string &str) {
+	   auto it = str.find('.');
+
+	   if(it == std::string::npos) {
+	      it = str.find(',');
+	   }
+
+	   if(it == std::string::npos) {
+	      return str;
+	   }
+
+	   return str.substr(0, it);
 	}
 
-	// std::string GetInteger(const std::string &str) {
-	//    auto it = str.find('.');
+	std::string GetFractional(const std::string &str) {
+	   auto it = str.find('.');
 
-	//    if(it == std::string::npos) {
-	//       it = str.find(',');
-	//    }
+	   if(it == std::string::npos) {
+	      it = str.find(',');
+	   }
 
-	//    if(it == std::string::npos) {
-	//       return str;
-	//    }
+	   if(it == std::string::npos) {
+	      return "0";
+	   }
 
-	//    return str.substr(0, it);
-	// }
-
-	// std::string GetFractional(const std::string &str) {
-	//    auto it = str.find('.');
-
-	//    if(it == std::string::npos) {
-	//       it = str.find(',');
-	//    }
-
-	//    if(it == std::string::npos) {
-	//       return "0";
-	//    }
-
-	//    return str.substr(it+1);
-	// }
+	   return str.substr(it+1);
+	}
 
 	void FractionalReduction() {
 		while(fractional_.size() != 0 && fractional_[fractional_.size() - 1] == '0') {
